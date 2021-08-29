@@ -1,0 +1,32 @@
+<idea-plugin>
+    <id>org.example.sumlang</id>
+    <name>Sum Language</name>
+    <vendor email="walshe.brian@gmail.com" url="http://bwalshe.github.com">Brian</vendor>
+
+    <description><![CDATA[
+    This is a plugin for a simple language based on an example grammar taken from chapter 2 of
+    <em>Compilers - Principals, Techniques and Tools</em> by Aho, Sethi & Ullman. The plugin
+    implementation borrows heavily from the <a href="https://plugins.jetbrains.com/docs/intellij/custom-language-support-tutorial.html">
+    Custom Language Creation</a> tutorial provided by Jetbrains and was created to help clarify
+    some of the details around implementing reference finding.
+    ]]></description>
+
+    <!-- please see https://plugins.jetbrains.com/docs/intellij/plugin-compatibility.html
+         on how to target different products -->
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <fileType name="Sum File" implementationClass="com.example.sumlang.SumFileType"
+                  fieldName="INSTANCE" language="Sum" extensions="sum"/>
+        <lang.parserDefinition language="Sum"
+                               implementationClass="com.example.sumlang.SumParserDefinition"/>
+        <psi.referenceContributor language="Sum" implementation="com.example.sumlang.SumReferenceContributor"/>
+        <lang.findUsagesProvider language="Sum"
+                                 implementationClass="com.example.sumlang.SumFindUsagesProvider"/>
+        <annotator language="Sum" implementationClass="com.example.sumlang.SumAnnotator"/>
+    </extensions>
+
+    <actions>
+        <!-- Add your actions here -->
+    </actions>
+</idea-plugin>

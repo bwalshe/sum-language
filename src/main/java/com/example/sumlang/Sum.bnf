@@ -1,0 +1,32 @@
+{
+  parserClass="com.example.sumlang.SumParser"
+
+  extends="com.intellij.extapi.psi.ASTWrapperPsiElement"
+
+  psiClassPrefix="Sum"
+  psiImplClassSuffix="Impl"
+  psiPackage="com.example.sumlang.psi"
+  psiImplPackage="com.example.sumlang.psi.impl"
+
+  elementTypeHolderClass="com.example.sumlang.psi.SumTypes"
+  elementTypeClass="com.example.sumlang.psi.SumElementType"
+  tokenTypeClass="com.example.sumlang.psi.SumTokenType"
+
+  psiImplUtilClass="com.example.sumlang.psi.SumPsiImplUtil"
+}
+
+simpleFile ::= item_*
+
+private item_ ::= assignment | CRLF
+
+assignment ::= IDENTIFIER EQ expr {
+    mixin="com.example.sumlang.psi.impl.SumNamedElementImpl"
+    extends="com.example.sumlang.psi.SumNamedElement"
+    methods=[getVarName getName setName getNameIdentifier]
+}
+expr ::=  term PLUS expr | term
+term ::= factor MUL term | factor {extends=expr}
+factor ::= DIGIT | IDENTIFIER |  OPEN_B expr CLOSE_B {
+    extends=expr
+    methods=[getReferences]
+}
