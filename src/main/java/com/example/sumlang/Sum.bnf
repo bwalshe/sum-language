@@ -28,5 +28,5 @@ expr ::=  term PLUS expr | term
 term ::= factor MUL term | factor {extends=expr}
 factor ::= DIGIT | IDENTIFIER |  OPEN_B expr CLOSE_B {
     extends=expr
-    methods=[getReferences]
+    methods=[getReferences getVariableId]
 }

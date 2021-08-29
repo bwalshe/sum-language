@@ -1,15 +1,14 @@
 package com.example.sumlang;
 
 import com.example.sumlang.psi.SumAssignment;
-import com.intellij.codeInsight.lookup.LookupElement;
 import com.intellij.codeInsight.lookup.LookupElementBuilder;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.psi.*;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.List;
+
 
 public class SumReference extends PsiReferenceBase<PsiElement> implements PsiPolyVariantReference {
 
@@ -22,12 +21,8 @@ public class SumReference extends PsiReferenceBase<PsiElement> implements PsiPol
 
     @Override
     public ResolveResult @NotNull [] multiResolve(boolean incompleteCode) {
-        final List<SumAssignment> assignments = SumUtil.findMatchingAssignments(myElement.getProject(), _id);
-        List<ResolveResult> results = new ArrayList<>();
-        for (SumAssignment assignment: assignments) {
-            results.add(new PsiElementResolveResult(assignment));
-        }
-        return results.toArray(new ResolveResult[0]);
+        final List<SumAssignment> assignments = SumUtil.findAssignments(myElement.getProject(), _id);
+        return assignments.stream().map(PsiElementResolveResult::new).toArray(ResolveResult[]::new);
     }
 
     @Nullable
@@ -39,17 +34,13 @@ public class SumReference extends PsiReferenceBase<PsiElement> implements PsiPol
 
     @Override
     public Object @NotNull [] getVariants() {
-        List<SumAssignment> assignments = SumUtil.findAllAssignments(myElement.getProject());
-        List<LookupElement> variants = new ArrayList<>();
-        for (final SumAssignment assignment: assignments) {
-            if (assignment.getVarName() != null && assignment.getVarName().length() > 0) {
-                variants.add(LookupElementBuilder
-                        .create(assignment).withIcon(SumIcons.FILE)
-                        .withTypeText(assignment.getContainingFile().getName())
-                );
-            }
-        }
-        return variants.toArray();
+        List<SumAssignment> assignments = SumUtil.findAssignments(myElement.getProject());
+        return assignments.stream()
+                .filter(assignment -> assignment.getVarName() != null && assignment.getVarName().length() > 0)
+                .map(assignment -> LookupElementBuilder.create(assignment)
+                        .withIcon(SumIcons.FILE)
+                        .withTypeText(assignment.getContainingFile().getName()))
+                .toArray();
     }
 
 }

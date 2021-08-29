@@ -26,9 +26,8 @@ public class SumAnnotator implements Annotator {
         ASTNode idNode = factor.getNode().findChildByType(SumTypes.IDENTIFIER);
         if(idNode!=null) {
             String id = idNode.getText();
-            List<SumAssignment> assignments = SumUtil.findMatchingAssignments(element.getProject(), id);
+            List<SumAssignment> assignments = SumUtil.findAssignments(element.getProject(), id);
             if(assignments.size() == 0) {
-
                 holder.newAnnotation(HighlightSeverity.ERROR, "Unresolved property")
                         .range(element.getTextRange())
                         .highlightType(ProblemHighlightType.LIKE_UNKNOWN_SYMBOL)

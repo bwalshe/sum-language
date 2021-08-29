@@ -18,7 +18,6 @@ import org.jetbrains.annotations.NotNull;
 public class SumParserDefinition implements ParserDefinition {
 
     public static final TokenSet WHITE_SPACES = TokenSet.create(TokenType.WHITE_SPACE);
-    //public static final TokenSet COMMENTS = TokenSet.create(SumTypes.COMMENT);
 
     public static final IFileElementType FILE = new IFileElementType(SumLanguage.INSTANCE);
 
@@ -38,7 +37,6 @@ public class SumParserDefinition implements ParserDefinition {
     @Override
     public TokenSet getCommentTokens() {
         return TokenSet.EMPTY;
-        //COMMENTS;
     }
 
     @NotNull
