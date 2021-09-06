@@ -13,6 +13,17 @@
   tokenTypeClass="com.example.sumlang.psi.SumTokenType"
 
   psiImplUtilClass="com.example.sumlang.psi.SumPsiImplUtil"
+  tokens = [
+    PLUS = '+'
+    MINUS = '-'
+    MUL = '*'
+    DIV = '/'
+    OPEN_B = '('
+    CLOSE_B = ')'
+    EQ = '='
+    IDENTIFIER="regexp:\p{Alpha}\w*"
+    DIGIT="regexp:\d+"
+  ]
 }
 
 simpleFile ::= item_*
@@ -24,8 +35,10 @@ assignment ::= IDENTIFIER EQ expr {
     extends="com.example.sumlang.psi.SumNamedElement"
     methods=[getVarName getName setName getNameIdentifier]
 }
-expr ::=  term PLUS expr | term
-term ::= factor MUL term | factor {extends=expr}
+expr ::=  term PLUS expr | term MINUS expr | term {
+    methods=[getValue]
+}
+term ::= factor MUL term | factor DIV factor | factor {extends=expr}
 factor ::= DIGIT | IDENTIFIER |  OPEN_B expr CLOSE_B {
     extends=expr
     methods=[getReferences getVariableId]
