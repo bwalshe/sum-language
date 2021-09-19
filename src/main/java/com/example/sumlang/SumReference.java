@@ -14,9 +14,9 @@ public class SumReference extends PsiReferenceBase<PsiElement> implements PsiPol
 
     private final String _id;
 
-    public SumReference(@NotNull PsiElement element, TextRange textRange) {
-        super(element, textRange);
-        _id = element.getText().substring(textRange.getStartOffset(), textRange.getEndOffset());
+    public SumReference(@NotNull String id, @NotNull PsiElement element) {
+        super(element, new TextRange(0, id.length()));
+        _id = id;
     }
 
     @Override

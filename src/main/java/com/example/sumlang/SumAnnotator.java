@@ -25,16 +25,20 @@ public class SumAnnotator implements Annotator {
                         .range(textRange)
                         .highlightType(ProblemHighlightType.LIKE_UNKNOWN_SYMBOL)
                         .create();
+            } else {
+                SumExpr expr = assignments.get(0).getExpr();
+                if(expr != null) {
+                    expr.getValue().ifPresentOrElse(
+                            v -> holder.newAnnotation(HighlightSeverity.INFORMATION, v.toString())
+                                    .range(textRange)
+                                    .create(),
+                            () -> holder.newAnnotation(HighlightSeverity.WARNING, "Undetermined value")
+                                    .range(textRange)
+                                    .highlightType(ProblemHighlightType.WARNING)
+                                    .create()
+                    );
+                }
             }
-            assignments.get(0).getExpr().getValue().ifPresentOrElse(
-                    v -> holder.newAnnotation(HighlightSeverity.INFORMATION, v.toString())
-                            .range(textRange)
-                            .create(),
-                    () -> holder.newAnnotation(HighlightSeverity.WARNING, "Undetermined value")
-                            .range(textRange)
-                            .highlightType(ProblemHighlightType.WARNING)
-                            .create()
-            );
         }
     }
 }

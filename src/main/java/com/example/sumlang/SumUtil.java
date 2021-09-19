@@ -4,6 +4,7 @@ import com.example.sumlang.psi.SumAssignment;
 import com.example.sumlang.psi.SumFile;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.psi.PsiErrorElement;
 import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FileTypeIndex;
 import com.intellij.psi.search.GlobalSearchScope;
@@ -34,7 +35,8 @@ public class SumUtil {
                 .filter(Objects::nonNull)
                 .map(f->PsiTreeUtil.getChildrenOfType(f, SumAssignment.class))
                 .filter(Objects::nonNull)
-                .flatMap(Arrays::stream);
+                .flatMap(Arrays::stream)
+                .filter(e->Arrays.stream(e.getChildren()).noneMatch(ee ->ee instanceof PsiErrorElement));
     }
 
 

@@ -19,10 +19,8 @@ public class SumReferenceContributor extends PsiReferenceContributor {
                                                                            @NotNull ProcessingContext context) {
                         SumFactor factor = (SumFactor) element;
                         return factor.getVariableId()
-                                .map(id -> {
-                                    TextRange property = new TextRange(0, id.length());
-                                    return new PsiReference[]{new SumReference(element, property)};
-                                }).orElse(PsiReference.EMPTY_ARRAY);
+                                .map(id -> new PsiReference[]{new SumReference(id, element)})
+                                .orElse(PsiReference.EMPTY_ARRAY);
                     }
                 });
     }

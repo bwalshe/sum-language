@@ -14,6 +14,7 @@ The plugin currently supports the following opperations:
  * Jump to a variable's definition
  * Show the variable's usage
  * Highlight undefined variables.
+ * Annotate variables with their value
  
 The plugin implementation borrows heavily from the <a href="https://plugins.jetbrains.com/docs/intellij/custom-language-support-tutorial.html">
 Custom Language Creation</a> tutorial provided by Jetbrains and was created to help clarify

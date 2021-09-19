@@ -21,7 +21,7 @@ public class SumFile extends PsiFileBase {
 
     @Override
     public String toString() {
-        return "Sub File";
+        return "Sum File";
     }
 
 }
