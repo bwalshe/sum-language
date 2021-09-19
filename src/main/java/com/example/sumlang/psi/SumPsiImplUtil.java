@@ -5,7 +5,7 @@ import com.intellij.lang.ASTNode;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiReference;
 import com.intellij.psi.impl.source.resolve.reference.ReferenceProvidersRegistry;
-import com.intellij.psi.tree.IElementType;
+import org.apache.commons.lang.NotImplementedException;
 
 import java.util.List;
 import java.util.Optional;
@@ -16,11 +16,56 @@ import java.util.stream.Stream;
 
 
 public class SumPsiImplUtil {
+    @SuppressWarnings("unused")
+    public static Optional<Double> getValue(SumExpr e, Set<String> unknowns) {
+        throw new NotImplementedException("getValue() should never be called directly on an expr");
+    }
 
-    public static PsiReference[] getReferences(SumFactor elt) {
-        return elt.getVariableId().isPresent() ?
-                ReferenceProvidersRegistry.getReferencesFromProviders(elt)
-                : new PsiReference[0];
+    public static Optional<Double> getValue(SumExpr e) {
+        return e.getValue(Set.of());
+    }
+
+    @SuppressWarnings("unused")
+    public static Optional<Double> getValue(SumLiteralExpr literal, Set<String> unknowns) {
+        return Optional.of(Double.parseDouble(literal.getText()));
+    }
+
+    public static Optional<Double> getValue(SumAddExpr e, Set<String> unknowns) {
+        return applyFn(Double::sum, e, unknowns);
+    }
+
+    public static Optional<Double> getValue(SumMinusExpr e, Set<String> unknowns) {
+        return applyFn((a, b) -> a - b, e, unknowns);
+    }
+
+    public static Optional<Double> getValue(SumMulExpr e, Set<String> unknowns) {
+        return applyFn((a, b) -> a * b, e, unknowns);
+    }
+
+    public static Optional<Double> getValue(SumDivExpr e, Set<String> unknowns) {
+        return applyFn((a, b) -> a / b, e, unknowns);
+    }
+
+    public static Optional<Double> getValue(SumParenExpr e, Set<String> unknowns) {
+        return Optional.ofNullable(e.getExpr())
+                .flatMap(child -> child.getValue(unknowns));
+    }
+
+    public static Optional<Double> getValue(SumIdExpr id, Set<String> unknowns) {
+        List<SumAssignment> assignments = SumUtil.findAssignments(id.getProject(), id.getText());
+        if (assignments.size() != 1) {
+            return Optional.empty();
+        }
+        SumAssignment assignment = assignments.get(0);
+        String varName = assignment.getVarName();
+        if (unknowns.contains(varName)) {
+            return Optional.empty();
+        }
+        Set<String> newUnknowns = Stream.concat(unknowns.stream(),
+                Stream.of(varName))
+                .collect(Collectors.toSet());
+        return Optional.ofNullable(assignment.getExpr())
+                .flatMap(e -> e.getValue(newUnknowns));
     }
 
     public static String getVarName(SumAssignment assignment) {
@@ -47,71 +92,17 @@ public class SumPsiImplUtil {
         return idNode != null ? idNode.getPsi() : null;
     }
 
-    static Optional<Integer> applyFn(BiFunction<Integer, Integer, Integer> function, SumExpr elt, Set<String> unknowns) {
-        Optional<Integer> left = getValue(elt.getExprList().get(0), unknowns);
-        Optional<Integer> right = getValue(elt.getExprList().get(1), unknowns);
+    public static PsiReference[] getReferences(SumIdExpr elt) {
+        return ReferenceProvidersRegistry.getReferencesFromProviders(elt);
+    }
+
+    private static Optional<Double> applyFn(BiFunction<Double, Double, Double> function, BinaryOp elt, Set<String> unknowns) {
+        List<SumExpr> expressions = elt.getExprList();
+        if (expressions.size() != 2) {
+            return Optional.empty();
+        }
+        Optional<Double> left = expressions.get(0).getValue(unknowns);
+        Optional<Double> right = expressions.get(1).getValue(unknowns);
         return left.flatMap(l -> right.map(r -> function.apply(l, r)));
-    }
-
-    private static boolean contains(ASTNode node, IElementType type) {
-        return node.findChildByType(type) != null;
-    }
-
-    private static Optional<String> tryGetText(ASTNode node, IElementType type) {
-        return Optional.ofNullable(node.findChildByType(type)).map(ASTNode::getText);
-    }
-
-    public static Optional<Integer> getValue(SumExpr elt) {
-        return getValue(elt, Set.of());
-    }
-
-    public static Optional<Integer> getValue(SumExpr elt, Set<String> unknowns) {
-        ASTNode node = elt.getNode();
-
-        if (contains(node, SumTypes.PLUS)) {
-            return applyFn(Integer::sum, elt, unknowns);
-        }
-
-        if (contains(node, SumTypes.MINUS)) {
-            return applyFn((a, b) -> a - b, elt, unknowns);
-        }
-
-        if (contains(node, SumTypes.MUL)) {
-            return applyFn((a, b) -> a * b, elt, unknowns);
-        }
-
-        if (contains(node, SumTypes.DIV)) {
-            return applyFn((a, b) -> a / b, elt, unknowns);
-        }
-
-        if (contains(node, SumTypes.OPEN_B)) {
-            return getValue(elt.getExprList().get(0), unknowns);
-        }
-
-        return tryGetText(node, SumTypes.IDENTIFIER).flatMap(id -> {
-            List<SumAssignment> assignments = SumUtil.findAssignments(elt.getProject(), id);
-
-            if (assignments.size() != 1) {
-                return Optional.empty();
-            }
-
-            String varName = assignments.get(0).getVarName();
-            if (unknowns.contains(varName)) {
-                return Optional.empty();
-            }
-
-            Set<String> newUnknowns = Stream.concat(unknowns.stream(),
-                    Stream.of(varName))
-                    .collect(Collectors.toSet());
-            return getValue(assignments.get(0).getExpr(), newUnknowns);
-        }).or(
-                () -> tryGetText(node, SumTypes.DIGIT).map(Integer::parseInt)
-        );
-    }
-
-    public static Optional<String> getVariableId(SumExpr elt) {
-        ASTNode idNode = elt.getNode().findChildByType(SumTypes.IDENTIFIER);
-        return Optional.ofNullable(idNode)
-                .map(ASTNode::getText);
     }
 }

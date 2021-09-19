@@ -42,5 +42,4 @@ public class SumReference extends PsiReferenceBase<PsiElement> implements PsiPol
                         .withTypeText(assignment.getContainingFile().getName()))
                 .toArray();
     }
-
 }

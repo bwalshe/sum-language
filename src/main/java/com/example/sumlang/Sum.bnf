@@ -25,6 +25,7 @@
     IDENTIFIER="regexp:\p{Alpha}\w*"
     DIGIT="regexp:\d+"
   ]
+  extends(".*expr")=expr
 }
 
 simpleFile ::= item_ *
@@ -39,15 +40,38 @@ assignment ::= IDENTIFIER EQ expr {
     methods=[getVarName getName setName getNameIdentifier]
 }
 
-expr ::=  term PLUS expr | term MINUS expr | term {
+expr ::=  add_group | mul_group | primary_group {
     methods=[getValue]
 }
 
-term ::= factor MUL term | factor DIV factor | factor {extends=expr}
+private add_group ::= add_expr | minus_expr
+private mul_group ::= mul_expr | div_expr
+private primary_group ::= literal_expr | id_expr | paren_expr
 
-factor ::= DIGIT | IDENTIFIER |  OPEN_B expr CLOSE_B {
-    extends=expr
-    methods=[getReferences getVariableId]
+add_expr ::= expr PLUS expr {
+    implements=["com.example.sumlang.psi.BinaryOp"]
+    methods=[getValue]
+}
+minus_expr ::= expr MINUS expr {
+   implements=["com.example.sumlang.psi.BinaryOp"]
+   methods=[getValue]
+}
+mul_expr ::= expr MUL expr {
+   implements=["com.example.sumlang.psi.BinaryOp"]
+   methods=[getValue]
+}
+div_expr ::= expr DIV expr {
+   implements=["com.example.sumlang.psi.BinaryOp"]
+   methods=[getValue]
+}
+literal_expr ::= DIGIT {
+    methods=[getValue]
+}
+id_expr ::= IDENTIFIER {
+    methods=[getValue getReferences]
+}
+paren_expr ::= OPEN_B expr CLOSE_B {
+    methods=[getValue]
 }
 
 private recover_ ::= !(SEMI | (IDENTIFIER EQ))
