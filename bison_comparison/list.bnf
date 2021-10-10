@@ -1,0 +1,12 @@
+{
+  tokens = [
+      PLUS = '+'
+      MINUS = '-'
+      EQ = '='
+      ID="regexp:\p{Alpha}\w*"
+      DIGIT="regexp:\d+"
+      ]
+}
+//statement ::= ID EQ expr
+expr ::= DIGIT | DIGIT '+' expr |
+         DIGIT '-' expr
