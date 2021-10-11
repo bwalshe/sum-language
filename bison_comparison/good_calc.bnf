@@ -6,7 +6,7 @@
       DIV = '/'
       OPEN_B = '('
       CLOSE_B = ')'
-      DIGIT="regexp:\d+"
+      NUM="regexp:\d+"
     ]
 }
 
@@ -20,9 +20,9 @@ private add_group ::= add_expr | minus_expr
 private mul_group ::= mul_expr | div_expr
 private primary_group ::= literal_expr | paren_expr
 
-add_expr ::= expr PLUS expr {extends=expr}
-minus_expr ::= expr MINUS expr {extends=expr}
-mul_expr ::= expr MUL expr {extends=expr}
-div_expr ::= expr DIV expr {extends=expr}
-literal_expr ::= DIGIT {extends=expr}
+add_expr ::= expr '+' expr {extends=expr}
+minus_expr ::= expr '-' expr {extends=expr}
+mul_expr ::= expr '*' expr {extends=expr}
+div_expr ::= expr '/' expr {extends=expr}
+literal_expr ::= NUM {extends=expr}
 paren_expr ::= OPEN_B expr CLOSE_B {extends=expr}

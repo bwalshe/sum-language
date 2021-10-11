@@ -259,9 +259,13 @@ isn't the best solution, but it does actually work - just about. The new rules a
 follows: 
 
 ```bnf
-expr ::=  term PLUS expr | term
-term ::= factor MUL term | factor
-factor ::= DIGIT | IDENTIFIER |  OPEN_B expr CLOSE_B
+expr ::=  term '+' expr |
+          term '-' expr |
+          term
+term ::= factor '*' term |
+         factor '/' term |
+         factor
+factor ::= DIGIT | OPEN_B expr CLOSE_B
 ```
 
 Unlike Bison, we didn't need to create a data structure, or tell the parser how to build 

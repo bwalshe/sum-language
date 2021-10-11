@@ -7,8 +7,7 @@
       DIV = '/'
       OPEN_B = '('
       CLOSE_B = ')'
-      IDENTIFIER="regexp:\p{Alpha}\w*"
-      DIGIT="regexp:\d+"
+      NUM="regexp:\d+"
     ]
 }
 
@@ -16,6 +15,10 @@ calcFile ::= item_*
 
 private item_ ::= expr | CRLF
 
-expr ::=  term PLUS expr | term
-term ::= factor MUL term | factor
-factor ::= DIGIT | IDENTIFIER |  OPEN_B expr CLOSE_B
+expr ::=  term '+' expr |
+          term '-' expr |
+          term
+term ::= factor '*' term |
+         factor '/' term |
+         factor
+factor ::= NUM | OPEN_B expr CLOSE_B
