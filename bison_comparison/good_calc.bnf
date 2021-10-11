@@ -6,7 +6,6 @@
       DIV = '/'
       OPEN_B = '('
       CLOSE_B = ')'
-      IDENTIFIER="regexp:\p{Alpha}\w*"
       DIGIT="regexp:\d+"
     ]
 }

@@ -89,7 +89,7 @@ list -> list + digit |
 digit -> 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 ```
 
-# Getting started with Grammar Kit
+## Generating a simple parser in Grammar Kit
 OK, now that we have shown an example of a grammar, let's try making a
 parser in Gramar Kit. Fire up Intellij, go to the create a new project 
 dialog and tick the checkbox for "Intellij Platform Plugin" before
@@ -167,9 +167,126 @@ Well that's not right... For some reason it won't recognise the '+' symbol. Why
 is this? In PEGs the order of the productions matters. Because the production
 for `list -> digit` comes before the production for `list -> digit + list`, 
 and the PEG based parser will always pick the first production that matches.
-
+  
 In a CFG based parser generator like Bison, you do not need to worry about ordering
 your productions correctly, but in Grammar Kit you do. This seems like a big 
 disadvantage for Grammar Kit, but if we look at a more advanced example we will 
 see that there are times when the ordering of productions can make defining a
-grammar more straightforward. 
+grammar more straightforward.
+
+## Dealing with operator precedence
+
+Let's add the `*` and `/` operators into our grammar. You might think we could
+use something like this:
+```
+expr -> expr + digit |
+        expr - digit |
+        expr * digit |
+        expr / digit
+digit -> 0 | 1 | 2 | 3 | 4 | 3 | 4 | 5 | 6 | 7 | 8 | 9
+```
+
+This isn't going to work though, as `*` and `/` have higher precedence than `+`
+and `-`. Given the expression `1 + 2 * 3`, this must be evaluated as 
+`1 + (2 * 3)` and not `(1 + 2) * 3`. Unfortunately, in a CFG based parser
+generator like Bison, the above grammar will generate the following tree
+```
+(*)
+ |-(+)
+ |  |-value: 1
+ |  |-value: 2
+ |-value: 3
+```
+This corresponds to `(1 + 2) * 3`, which is wrong.
+
+As CFGs have no concept of operator precedence, you have to use quite a convoluted
+approach to defining the grammar for expressions. You need to use the following:
+
+```
+expr -> expr + term |
+        expr - term | 
+        term
+term -> term * factor |
+        term / factor |
+        factor
+factor -> digit | ( expr )
+```
+
+This isn't very intuitive at first, but basically we hae said that addition and subtraction
+are completely different from multiplication and division and set up our rules so that the
+trees can only be built up in a way that is consistent with our understanding of algebra. 
+In addition to the productions for the binary operators, we have one for parentheses, which
+allows us to override how the tree is going to be built up.
+
+Let's take a look at how a grammar like this is used in practice. A Bison parser using this 
+grammar can be seen in [calc.y](calc.y). Unlike Grammar-Kit, Bison does not provide you with
+data structures to store the results of your parsing, and you must create these yourself.
+I have implemented a simple structure in [tree.c](tree.c) and [tree.h](tree.h), and then
+in each of the productions in `clac.y`, I provide instructions for building up a tree 
+using the `new_val(int)` and `node *new_op(op_type, node *, node *)` functions. 
+
+The tree building section is as follows: 
+
+```bison
+expr: 
+    expr '+' term   { $$ = new_op(PLUS_NODE, $1, $3); }
+|   expr '-' term   { $$ = new_op(MINUS_NODE, $1, $3); }
+|   term            { $$ = $1; }
+;
+
+term: 
+    term '*' factor { $$ = new_op(MUL_NODE, $1, $3); }
+|   term '/' factor { $$ = new_op(DIV_NODE, $1, $3); }
+|   factor          { $$ = $1; }
+;
+
+factor: 
+    NUM             { $$ = new_value($1); }
+|   '(' expr ')'    { $$ = $2; }
+;
+```
+Having to define my own data structure, and having to state explicitly how to construct
+the tree is a lot more work than I had to do when working with Grammar-Kit, but it does
+have one advantage - it allows me to construct a nice, concise tree. My productions 
+might have confusing symbols like *factor* and *term*, but the trees I produce just contain
+the operators and numbers. Even the parentheses do not appear in the final tree, they change
+the shape of the tree, but there is no need to record them in the tree itself. 
+
+Let's try doing the same thing using Grammar Kit. The above rules are all left-hand 
+recursive, but we can easily swap things around to get something that does work. These new
+rules can be found in `bad_calc.bnf`. The name of this file gives you a clue that this
+isn't the best solution, but it does actually work - just about. The new rules are as 
+follows: 
+
+```bnf
+expr ::=  term PLUS expr | term
+term ::= factor MUL term | factor
+factor ::= DIGIT | IDENTIFIER |  OPEN_B expr CLOSE_B
+```
+
+Unlike Bison, we didn't need to create a data structure, or tell the parser how to build 
+up the tree, it just knows how to do it. Let's take a look at one of these trees, and see
+why I said this parser was bad. Open up [bad_calc.bnf](bad_calc.bnf) in intellij 
+and press `crl-alt-p` to get a live preview. Type in `(1 + 2) * 3`, and hit 
+`ctrl-shift-q` to view the tree structure in psi-viewer. 
+
+![Bad PSI Tree](bad_psi_tree.png)
+
+You will have to expand the nodes a few times before getting to the leaves.
+This tree is a mess. This huge compared to the parser implemented in Bison 
+which produces the following tree with only 2 nodes and 3 leaves.
+
+```
+(*)
+ |-(+)
+ |  |-value: 1
+ |  |-value: 2
+ |-value: 3
+```
+
+The Grammar-Kit tree is full of useless information and is going to be a 
+nightmare to deal with if you want to evaluate the expression it describes. 
+I would go as far as to say that it is useless. While it is possible to  convert
+a Bison grammar to work with Grammar Kit, it is probably not what you want to do.   
+
+
