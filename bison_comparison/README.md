@@ -95,9 +95,7 @@ called `list.bnf` and enter the following:
 ```bnf
 {
   tokens = [
-      PLUS = '+'
-      MINUS = '-'
-      DIGIT="regexp:\d+"
+      DIGIT="regexp:\d"
       ]
 }
 list ::= list ',' DIGIT |
