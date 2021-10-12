@@ -1,25 +1,25 @@
-# Understanding Grammar Kit
+# Parser Expression Grammars in Grammar Kit
 
-Jet Brains grammar-kit is a powerful parser generator but it's a bit tricky to
-get to grips with as it follows a slightly different theoretical framework than
+Jet Brains [Grammar Kit](https://github.com/JetBrains/Grammar-Kit) is a powerful 
+parser generator, but it follows a slightly different theoretical framework than
 most parser generators I am familiar with and there isn't much documentation
 available for it. On top of this it actually uses a combination of two
-different types of parser generator which makes things even more confusing.
-There are a few readme and tutorial files in the github repo, but that is about
-it. These documents seem to assume that you already have a good understanding of
-parser generation and for someone like me, who took one (1) undergrad course on
-compiler design 20 years ago, this is all a lot to take in at once. The
-instructions tell you how to do various things in grammar-kit, but they don't
-really explain it in much depth.
+different types of parser generator which I found quite confusing.
+There are a few readme and tutorial files in the github repo, but they seem
+to asu assume that you already have a good understanding of
+parser generation. For someone like me, who took one (1) undergrad course on
+compiler design 20 years ago, this is all a lot to take in at once. The following 
+article is based on some notes I put together to help understand how it all works. 
 
-Most parser generators are based on Context Free Grammars (CFG), but Grammar
-Kit is based on Parsing Expression Grammars (PEG) which are very similar, but
+Most parser generators are based on Context Free Grammars (CFGs), but Grammar
+Kit is based on Parsing Expression Grammars (PEGs). These are very similar, but
 just different enough to cause confusion. In order to explain how Grammar Kit
-works, I am going to go through some worked examples and show how the Grammar
-Kit's behaviour differs from Bison, a CFG based parser generation. I'll try
-and avoid going into detail on the theory side of things and focus more on
-the practical differences. Before I can do that though, I'll give a brief
-overview of Parsers, Parser Generators and Grammars first.
+works, I am going to go through some worked examples and show how Grammar
+Kit's behaviour differs from Bison, which is a more traditional a CFG based 
+parser generation. I'll try to avoid going into detail on the theory side of 
+things and instead focus more on the practical differences. Before I can do 
+that though, I'll give a brief overview of Parsers, Parser Generators and 
+Grammars first.
 
 ## Parsers, Parser Generators and Grammars
 
@@ -61,30 +61,26 @@ PEGs the order of that rules are specified in has significance.
 
 Both of these grammars (CFG) are typically written using a notation called
 [Bakus-Naur Form](https://en.wikipedia.org/wiki/Backus%E2%80%93Naur_form). If
-we wanted to specify a language that consists of simple equations containing
-addition or subtraction operations on single digits (e.g. `2 + 2` or `1 + 2 - 3`)
-we could use the following grammar.
+we wanted to specify a language that consists of lists of integers, we could
+use the following grammar.
 
 ```
-list -> list + digit 
-list -> list - digit 
+list -> list , digit  
 list -> digit
 digit -> 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 ```
 
 Our start symbol is *list*. The productions state that the non-terminal *list*
 symbol can be replaced by several options. Either we can replace it with
-another *list* symbol, the terminal '+' token, and the non-terminal *digit* token,
-**or** we can replace it by *list* '-' *digit*, **or** we can replace it with
-a single *digit* symbol.
+another *list* symbol, the terminal ',' token, and the non-terminal *digit* token, 
+**or** we can replace it with a single *digit* symbol.
 
 The *digit* symbol can be replaced by a terminal digit character. The '|'
 operator is used to denote a choice of productions. The above could be
 re-written as:
 
 ```
-list -> list + digit |
-        list - digit |
+list -> list , digit |
         digit
 digit -> 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9
 ```
@@ -104,8 +100,7 @@ called `list.bnf` and enter the following:
       DIGIT="regexp:\d+"
       ]
 }
-list ::= list '+' DIGIT |
-         list '-' DIGIT |
+list ::= list ',' DIGIT |
          DIGIT
 ```
 
@@ -122,19 +117,18 @@ generator". This is fixed easily enough, you can just swap things around
 to use right-handed recursion as follows:
 
 ```bnf
-list ::= DIGIT '+' list |
-         DIGIT '-' list |
+list ::= DIGIT ',' list |
          DIGIT
 ```
 
 You can check that this grammar works by right-clicking on the `list.bnf` 
 file and selecting "Live Preview". This will open a window where you 
-can type some text and see if it parses. Try "1+2-3", it should show with
+can type some text and see if it parses. Try "1,2,3", it should show with
 no errors.
 
 ![Correctly parsed equation](list_good_parse.png)
 
-Try "1+x" - this should show an error on the 'x' character.
+Try "1,x" - this should show an error on the 'x' character.
 
 ![Equation parsing error](list_bad_parse.png).
 
@@ -265,7 +259,7 @@ expr ::=  term '+' expr |
 term ::= factor '*' term |
          factor '/' term |
          factor
-factor ::= DIGIT | OPEN_B expr CLOSE_B
+factor ::= DIGIT | '(' expr ')'
 ```
 
 Unlike Bison, we didn't need to create a data structure, or tell the parser how to build 
@@ -289,8 +283,100 @@ which produces the following tree with only 2 nodes and 3 leaves.
 ```
 
 The Grammar-Kit tree is full of useless information and is going to be a 
-nightmare to deal with if you want to evaluate the expression it describes. 
-I would go as far as to say that it is useless. While it is possible to  convert
-a Bison grammar to work with Grammar Kit, it is probably not what you want to do.   
+nightmare to deal with if you want to evaluate the expression it describes.
 
+On top of this, it does not actually parse things correctly. Both Bison 
+and Grammar Kit produce left associative rules as standard. Left associativity
+means that 1 + 2 + 3, should be interpreted as (1 + 2) + 3. If we only had one
+operator then we would be fine, but having a mixture of opperators causes problems
+If you type "1-2+3" in the preview window for `bad_calc.bnf` and then inspect the
+PSI tree, you will see that it has been interpreted as "1 - (2 + 3)".
 
+Why did this happen? The PEG used by Grammar Kit will give higher precedence to 
+the later productions, so '-' has a different precedence to '+', and associativity
+only applies to operators with the same precedence.
+
+## Building a proper expression parser in Grammar Kit
+
+So we have seen that taking a Bison grammar and editing it a bit to use in  
+Grammar Kit doesn't really work. The trees are messy, and it looks like it doesn't 
+produce correct results. If you want to parse expressions like this, you need to 
+make use of Grammar Kit's second parser generator which activates automatically 
+when Grammar Kit detects that you are trying to implement "expression" style rules.
+That is when you are working with something like 
+
+```
+expr -> expr OP1 val |
+        expr OP2 val |
+        ...
+        expr OPn val |
+        val
+```
+
+In order to work with expressions like this, and get a clean parse tree along with 
+correct operator precedence and associativity, you need to follow a special formula, 
+making use of some key-words that I have not used so far. 
+
+First key-word is *private* which can be used to add a production which will be
+used to guide the parsing, but will not produce a node that appears in the
+final parse tree. 
+
+The second key-word is *extends*. This keyword has multiple uses in Grammar Kit, but in 
+this case it is used to indicate that some of our productions are special cases
+of other productions.
+
+If we want to define a grammar that correctly parses equations, we need to use the
+following:
+
+```bnf
+expr ::=  add_group | mul_group | primary_group
+
+private add_group ::= add_expr | minus_expr
+private mul_group ::= mul_expr | div_expr
+private primary_group ::= literal_expr | paren_expr
+
+mul_expr ::= expr '*' expr {extends=expr}
+div_expr ::= expr '/' expr {extends=expr}
+add_expr ::= expr '+' expr {extends=expr}
+minus_expr ::= expr '-' expr {extends=expr}
+
+literal_expr ::= NUM {extends=expr}
+paren_expr ::= '(' expr ')' {extends=expr}
+```
+
+This grammar follows the formula which causes a Pratt parser to be generated. 
+Here we have a root production which expands to a tree with nodes that all extend
+the left hand node of the root. There are other productions used in the grammar, 
+but these are all private, so they will not appear in the tree. 
+
+The private productions are used to define groups of operators with the same 
+precedence, and operators that are defined later have higher precedence than 
+the operators that were defined before them (unless they are in the same 
+group.)
+
+Let's take a look at a tree produced by this grammar. Open up 
+[good_calc.bnf](good_calc.bnf) and hit `ctrl-alt-p`. Type "1-2+3" into the 
+preview panel and hit `ctrl-shift-q` to see the parse tree. You should see the 
+following 
+
+![Well parsed 1-2+3](good_1_minus_2_plus_3.png)
+
+The first thing to notice is that this tree is much cleaner than the one we 
+saw before. It's not quite as clean as the hand-made one, but it is very similar
+in that we see the opperations as nodes instead of *factor* and *term*. The
+second (and probably more important) thing is that it has parsed the equation 
+correctly. It says to subtract 2 from 1 and *then* add 3.
+
+Let's try "1-2*3" ...
+
+![Well parsed 1-2*3](good_1_minus_2_times_3.png)
+
+Here the '-' operation has moved to the top of the tree, as we need to multiply 2 by 3 
+before we can take it away from 1.
+
+Finally, let's look at "(1-2)*3", which is shown below. Unlike the Bison parse tree which 
+was constructed in a more manual process, this one *does* include the parenthesis in the
+final AST. On the one hand, this is kind of annoying, on the other, it is pretty good
+for such an automated process.
+
+![Well parsed (1-2)*3](parens_123.png)

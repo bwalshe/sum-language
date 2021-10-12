@@ -1,12 +1,6 @@
-// This an example of how now to do things.
+// This an example of how not to do things.
 {
   tokens = [
-      PLUS = '+'
-      MINUS = '-'
-      MUL = '*'
-      DIV = '/'
-      OPEN_B = '('
-      CLOSE_B = ')'
       NUM="regexp:\d+"
     ]
 }
@@ -21,4 +15,4 @@ expr ::=  term '+' expr |
 term ::= factor '*' term |
          factor '/' term |
          factor
-factor ::= NUM | OPEN_B expr CLOSE_B
+factor ::= NUM | '(' expr ')'
